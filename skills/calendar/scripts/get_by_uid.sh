@@ -40,7 +40,12 @@ if [[ -z "$uid" ]]; then
   exit 1
 fi
 
-osascript - "$uid" "$calendar_name" <<'APPLESCRIPT'
+# Calendar database location
+CAL_DB="$HOME/Library/Group Containers/group.com.apple.calendar/Calendar.sqlitedb"
+
+if [[ ! -f "$CAL_DB" ]]; then
+  echo "Calendar database not found. Falling back to AppleScript." >&2
+  osascript - "$uid" "$calendar_name" <<'APPLESCRIPT'
 on run argv
     set targetUID to item 1 of argv
     set calName to item 2 of argv
@@ -96,3 +101,91 @@ on run argv
     end tell
 end run
 APPLESCRIPT
+  exit 0
+fi
+
+# Escape UID for SQL
+escaped_uid="${uid//\'/\'\'}"
+
+# Core Foundation epoch offset
+CF_OFFSET=978307200
+
+# Query the event
+result=$(sqlite3 -separator '|' "$CAL_DB" "
+SELECT
+    ci.unique_identifier,
+    ci.summary,
+    ci.start_date,
+    ci.end_date,
+    ci.all_day,
+    c.title,
+    COALESCE(l.title, ''),
+    COALESCE(ci.description, '')
+FROM CalendarItem ci
+JOIN Calendar c ON ci.calendar_id = c.ROWID
+LEFT JOIN Location l ON ci.location_id = l.ROWID
+WHERE ci.unique_identifier = '${escaped_uid}';
+")
+
+if [[ -z "$result" ]]; then
+  echo "Event not found"
+  exit 0
+fi
+
+IFS='|' read -r uid summary start_date end_date all_day calendar location description <<< "$result"
+
+echo "Summary: $summary"
+echo "Calendar: $calendar"
+
+# Convert dates
+start_unix=$((${start_date%.*} + CF_OFFSET))
+end_unix=$((${end_date%.*} + CF_OFFSET))
+start_str=$(date -r "$start_unix" "+%Y-%m-%d %H:%M:%S")
+end_str=$(date -r "$end_unix" "+%Y-%m-%d %H:%M:%S")
+
+echo "Start: $start_str"
+echo "End: $end_str"
+
+if [[ "$all_day" == "1" ]]; then
+  echo "All Day: true"
+else
+  echo "All Day: false"
+fi
+
+if [[ -n "$location" ]]; then
+  echo "Location: $location"
+fi
+
+if [[ -n "$description" ]]; then
+  # Truncate if too long
+  if [[ ${#description} -gt 500 ]]; then
+    description="${description:0:500}..."
+  fi
+  echo ""
+  echo "Description:"
+  echo "$description"
+fi
+
+# Try to get attendees (Participant table)
+attendees=$(sqlite3 -separator '|' "$CAL_DB" "
+SELECT
+    COALESCE(p.email, ''),
+    COALESCE(i.display_name, p.email, '')
+FROM Participant p
+LEFT JOIN Identity i ON p.identity_id = i.ROWID
+WHERE p.owner_id IN (
+    SELECT ROWID FROM CalendarItem WHERE unique_identifier = '${escaped_uid}'
+);
+" 2>/dev/null || true)
+
+if [[ -n "$attendees" ]]; then
+  echo ""
+  echo "Attendees:"
+  echo "$attendees" | while IFS='|' read -r email name; do
+    if [[ -n "$name" && "$name" != "$email" ]]; then
+      echo "• $name <$email>"
+    elif [[ -n "$email" ]]; then
+      echo "• $email"
+    fi
+  done
+fi

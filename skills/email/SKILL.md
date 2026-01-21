@@ -5,7 +5,7 @@ description: Use this skill when the user asks about email - reading, searching,
 
 # Email Automation via macOS Mail.app
 
-This skill uses small bash scripts (AppleScript under the hood) to automate the native macOS Mail.app. Scripts live directly in this folder and are intended to be called with parameters instead of editing AppleScript snippets inline.
+This skill uses small bash scripts (AppleScript under the hood) to automate the native macOS Mail.app. Scripts live in the `scripts/` subfolder and are intended to be called with parameters instead of editing AppleScript snippets inline.
 
 ## Requirements
 
@@ -27,29 +27,29 @@ This keeps the skill portable across different languages and account setups with
 
 ## Scripts
 
-- `list_accounts.sh` list accounts and mailboxes.
-- `list_recent.sh [limit]` list recent inbox messages (default 10).
-- `list_unread.sh` list unread inbox messages.
-- `read_by_id.sh --id <id> [--account <name|email>] [--mailbox <name>] [--max-chars <n>]` read full email.
-- `open_by_id.sh --id <id>` open email in Mail.app.
-- `search_inbox.sh --term <text> [--field subject|sender|content] [--limit <n>]` search inbox.
-- `search_mailbox.sh --account <name|email> --mailbox <name> --term <text> [--field subject|sender|content] [--limit <n>]` search a specific mailbox (archive, etc.), includes IDs.
-- `compose.sh --from <email> --to <email[,email]> [--cc ...] [--bcc ...] [--subject ...] [--body ...]` open compose window.
-- `send.sh --from <email> --to <email[,email]> [--cc ...] [--bcc ...] [--subject ...] [--body ...]` send immediately (confirm first).
-- `reply.sh --id <id>` open reply window.
-- `mark_read.sh --id <id> [--status true|false]` mark as read/unread.
-- `archive_exchange.sh --id <id> [--mailbox <archive_mailbox>]` archive for Exchange/Outlook.
-- `archive_gmail.sh --id <id> --account <name|email> [--inbox <mailbox>] [--all-mail <mailbox>]` archive for Gmail.
-- `delete.sh --id <id> [--account <name|email>] [--mailbox <name>] [--trash <mailbox>]` move to trash (use account/mailbox for Sent, Archive, etc.).
+- `scripts/list_accounts.sh` list accounts and mailboxes.
+- `scripts/list_recent.sh [limit]` list recent inbox messages (default 10).
+- `scripts/list_unread.sh` list unread inbox messages.
+- `scripts/read_by_id.sh --id <id> [--account <name|email>] [--mailbox <name>] [--max-chars <n>]` read full email.
+- `scripts/open_by_id.sh --id <id>` open email in Mail.app.
+- `scripts/search_inbox.sh --term <text> [--field subject|sender|content] [--limit <n>]` search inbox.
+- `scripts/search_mailbox.sh --account <name|email> --mailbox <name> --term <text> [--field subject|sender|content] [--limit <n>]` search a specific mailbox (archive, etc.), includes IDs.
+- `scripts/compose.sh --from <email> --to <email[,email]> [--cc ...] [--bcc ...] [--subject ...] [--body ...]` open compose window.
+- `scripts/send.sh --from <email> --to <email[,email]> [--cc ...] [--bcc ...] [--subject ...] [--body ...]` send immediately (confirm first).
+- `scripts/reply.sh --id <id>` open reply window.
+- `scripts/mark_read.sh --id <id> [--status true|false]` mark as read/unread.
+- `scripts/archive_exchange.sh --id <id> [--mailbox <archive_mailbox>]` archive for Exchange/Outlook.
+- `scripts/archive_gmail.sh --id <id> --account <name|email> [--inbox <mailbox>] [--all-mail <mailbox>]` archive for Gmail.
+- `scripts/delete.sh --id <id> [--account <name|email>] [--mailbox <name>] [--trash <mailbox>]` move to trash (use account/mailbox for Sent, Archive, etc.).
 
 ## Examples
 
 ```bash
-./list_accounts.sh
-./list_recent.sh 5
-./search_inbox.sh --term "invoice" --field subject --limit 5
-./read_by_id.sh --id 12345 --max-chars 1000
-./compose.sh --from "me@example.com" --to "you@example.com" --subject "Hello" --body $'Line 1\nLine 2'
+./scripts/list_accounts.sh
+./scripts/list_recent.sh 5
+./scripts/search_inbox.sh --term "invoice" --field subject --limit 5
+./scripts/read_by_id.sh --id 12345 --max-chars 1000
+./scripts/compose.sh --from "me@example.com" --to "you@example.com" --subject "Hello" --body $'Line 1\nLine 2'
 ```
 
 ## Notes
