@@ -1,0 +1,11 @@
+.DS_Store
+__pycache__/
+
+# Ignore all skills by default, then allow specific ones
+skills/*
+!skills/calendar/
+!skills/email/
+!skills/m365/
+!skills/slides/
+!skills/railway/
+!skills/peer-review/
