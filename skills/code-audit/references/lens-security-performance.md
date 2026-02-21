@@ -19,25 +19,47 @@
 
 7. **Deserialization** — Unsafe deserialization of untrusted data (pickle, eval, JSON.parse of user input into executable contexts). Prototype pollution.
 
+8. **Dependency / supply-chain exposure** — Known-vulnerable dependencies, unpinned versions pulling untrusted code, post-install scripts, typosquatting risk in package names.
+
+9. **Boundary-level authorization** — IDOR (Insecure Direct Object References) where users can access other users' resources by manipulating IDs. Horizontal privilege escalation. Missing ownership checks on resource access.
+
+10. **Trust-boundary crossings** — Data crossing trust boundaries (internal → external, user → system, client → server) without validation or sanitization at the boundary.
+
+## Adversarial Review Controls
+
+Check for patterns that could be exploited in AI-assisted development workflows:
+
+11. **Prompt injection in repo content** — Comments, docstrings, documentation, or script contents that contain patterns designed to manipulate LLM behavior when the code is read into a prompt.
+
+12. **Command-execution abuse paths** — Repo content (configs, scripts, Makefiles, CI definitions) that could steer an AI agent into executing unintended commands.
+
+13. **Secret/data exfiltration paths** — Sensitive data (secrets, env vars, credentials) leaking through logs, CI outputs, error messages, or tool outputs.
+
+14. **Unsafe permission boundary assumptions** — Agent workflows that assume permissions they shouldn't have, or code that grants broader access than intended to automated tools.
+
 ## Performance Checklist
 
-8. **N+1 queries** — Database queries or API calls inside loops. Each iteration triggers a separate round-trip when a batch operation would work.
+15. **N+1 queries** — Database queries or API calls inside loops. Each iteration triggers a separate round-trip when a batch operation would work.
 
-9. **Unbounded operations** — Loops, queries, or collections without size limits. Missing pagination on list endpoints. Recursive functions without depth bounds.
+16. **Unbounded operations** — Loops, queries, or collections without size limits. Missing pagination on list endpoints. Recursive functions without depth bounds.
 
-10. **Missing caching** — Repeated expensive computations or I/O for the same inputs within a request or short time window.
+17. **Missing caching** — Repeated expensive computations or I/O for the same inputs within a request or short time window.
 
-11. **Memory** — Large objects held in memory unnecessarily, unbounded collection growth, missing cleanup of temporary resources.
+18. **Memory** — Large objects held in memory unnecessarily, unbounded collection growth, missing cleanup of temporary resources.
 
-12. **Blocking in async contexts** — Synchronous I/O or CPU-heavy work in async/event-loop contexts. Thread pool exhaustion.
+19. **Blocking in async contexts** — Synchronous I/O or CPU-heavy work in async/event-loop contexts. Thread pool exhaustion.
 
 ## Failure Mode Checklist
 
-13. **External service failures** — What happens when a database, API, or third-party service is down or slow? Are there timeouts? Retries with backoff? Circuit breakers?
+20. **External service failures** — What happens when a database, API, or third-party service is down or slow? Are there timeouts? Retries with backoff? Circuit breakers?
 
-14. **Rollback safety** — Can this change be reverted without data loss or corruption? Are database migrations reversible?
+21. **Rollback safety** — Can this change be reverted without data loss or corruption? Are database migrations reversible?
 
-15. **Graceful degradation** — Does the system handle partial failures (one of N services down) or does any single failure cascade?
+22. **Graceful degradation** — Does the system handle partial failures (one of N services down) or does any single failure cascade?
+
+## Filtering Rule
+
+Focus on exploitable, high-impact findings. Move theoretical or weakly evidenced concerns to `Questions`. If static analysis output is provided, cross-reference it before raising findings — tool-confirmed issues take priority. The goal is a high signal-to-noise ratio: fewer findings, each one clearly actionable.
 
 ## Output Format
 

@@ -3,7 +3,7 @@
 **Scope:** Line and function level
 **Role:** You are a correctness specialist. Your job is to find logic errors, edge case failures, and behavioral bugs. Ignore style, conventions, and architecture — other lenses handle those.
 
-**Note:** This lens is secondary in codebase audits. Focus on code that has obvious logic issues — not exhaustive line-by-line correctness checks across the entire scope. Prioritize functions with complex branching, state management, or error-prone patterns.
+**Important: This lens is opt-in only.** It is not run by default during structural health audits. It is only included when the user explicitly requests correctness checking. The audit skill focuses on structural health — line-level correctness is the domain of tests, type checkers, and change-level review tools.
 
 ## Checklist
 
