@@ -87,42 +87,6 @@ For operations not available in the CLI, Railway has a GraphQL API:
 
 Always bind your app to `0.0.0.0:$PORT` - Railway injects the PORT variable.
 
-## Logging Setup (Python)
+## Logging (Python)
 
-Railway expects JSON logs on stdout with a lowercase `level` field. Use `python-json-logger`:
-
-```bash
-uv add python-json-logger
-```
-
-```python
-# logging_config.py
-import logging
-import sys
-from pythonjsonlogger.json import JsonFormatter
-
-class RailwayJsonFormatter(JsonFormatter):
-    """JSON formatter with lowercase level names for Railway."""
-    def add_fields(self, log_record, record, message_dict):
-        super().add_fields(log_record, record, message_dict)
-        log_record["level"] = record.levelname.lower()
-
-def setup_logging():
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(RailwayJsonFormatter("{message}", style="{"))
-    logging.basicConfig(handlers=[handler], level=logging.INFO, force=True)
-
-    # Silence noisy third-party libraries
-    for name in ("uvicorn", "uvicorn.error", "uvicorn.access", "httpx", "httpcore", "sqlalchemy"):
-        logging.getLogger(name).setLevel(logging.CRITICAL)
-```
-
-Call `setup_logging()` at app startup before creating loggers.
-
-### PostgreSQL/pgvector Log Levels
-
-PostgreSQL INFO messages appear as errors in Railway by default. Fix with a custom start command in Settings:
-
-```
-/bin/sh -c "unset PGPORT; exec docker-entrypoint.sh postgres --port=5432 -c log_min_messages=warning -c log_statement=none 2>&1"
-```
+Railway parses single-line JSON on stdout, colors by `level` field, and makes all JSON fields queryable via `@field:value` in the Log Explorer. For the full setup guide, patterns, and pitfalls, see [logging-python.md](logging-python.md).
