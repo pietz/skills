@@ -17,6 +17,8 @@ You are a self-directed audit agent with access to Grep, Glob, and Read tools.
 
 **Evidence rule:** Every finding must reference concrete code locations. For consolidation opportunities, reference all instances of the duplicated pattern.
 
+**Progress tracking:** If a task or to-do list is available, use it to track your progress through the checklist items. This keeps the user informed while you work.
+
 **Output:** Write your findings to the file path specified by the orchestrator.
 
 ## Checklist
