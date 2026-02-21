@@ -14,18 +14,18 @@ description: >
 
 Multi-lens audit system that uses parallel sub-agents with directed checklists to assess the structural health of a codebase. Built on research showing that LLMs find significantly more issues when given specific, scoped checklists than when asked to "review thoroughly" (BitsAI-CR: 75% precision with structured rules; ECSA: 64%→82% precision with prompt detail; SWRBench: +43.67% F1 with multi-review aggregation).
 
-**Cost note:** Token and runtime cost scales with scope and the number of active lenses. For large repositories, narrow the audit scope before running — see Scalability Routing below.
+**Cost note:** Token and runtime cost scales with scope and the number of active lenses. For large repositories, narrow the audit scope before running.
 
 **Model note:** This skill performs deep analytical work. Use the most capable model available.
 
 ## Core Principles
 
-1. **Context before judgment** — Assemble architecture, conventions, dependency map, and utility inventory before auditing anything.
+1. **Context before judgment** — Map the codebase before auditing anything. The scout builds the map, the lenses investigate.
 2. **Directed attention** — Each lens has a specific checklist. Generic scanning produces surface-level results.
 3. **Convention-aware** — Audit against *this repo's* actual patterns, not generic best practices.
 4. **Evidence-based** — Every finding must include file location, code evidence, and impact. No vague opinions.
 5. **High signal** — 5 actionable findings beat 20 vague ones. Prefer precision over volume.
-6. **Read-only** — The audit agent must not modify code files. If the user explicitly asks to persist report artifacts (e.g., saving an `audit.md`), ask for confirmation first. Report persistence is optional and user-driven, never default.
+6. **Pull, don't push** — Sub-agents read files themselves from disk. Never paste entire file contents into prompts.
 
 ## Workflow Routing
 
@@ -35,184 +35,108 @@ Multi-lens audit system that uses parallel sub-agents with directed checklists t
 | "Assess code quality / code health" | **Codebase Audit** — Same workflow |
 | "Refactor this code" | **Refactoring** — Read [references/refactoring-guide.md](references/refactoring-guide.md) and follow that workflow |
 
-**Uncommitted changes:** If the codebase has uncommitted changes, include them as additional context during the audit. They are part of the current state and may surface recent issues or in-progress patterns.
-
 **Before starting:** Inform the user that a multi-lens code audit is a thorough, multi-step process that will consume a significant number of tokens. Confirm the audit scope (which directory, module, or repo) and proceed only after the user acknowledges.
-
-## Scalability Routing
-
-Before starting Phase 1, determine the scope tier and follow the corresponding strategy:
-
-| Tier | Scope | Strategy |
-|------|-------|----------|
-| **Small** | Single module or <~30 files | Read everything. Run all lenses. |
-| **Medium** | Multi-module or ~30–100 files | Full context assembly with module-parallelization. Run all lenses with prioritized ordering. |
-| **Large** | 100+ files / full repo | Build architecture map first, then risk-based sampling and targeted deep dives. |
-
-**Large tier requirements:**
-- **Prioritization criteria:** Select modules for deep audit based on dependency fan-out, churn frequency, complexity, critical-path ownership, and security exposure.
-- **Context budget plan** (before Phase 2): Document which modules are selected, which files are sampled, why they were selected, and what is deferred.
-- **Hard rule:** If the audit does not cover the full codebase, say so explicitly. No implicit completeness claims.
-
-**Coverage output** (required in Phase 3 for all tiers):
-- `Coverage`: audited X/Y files, with selection criteria for Medium/Large tiers
-- `Excluded Areas`: what was not inspected and why
-- `Follow-Up Queue`: ordered list of next-pass targets for incomplete audits
 
 ---
 
-## Phase 1: Context Assembly
+## Setup
 
-**Run this inline (not as a sub-agent). This must complete before Phase 2.**
+1. Determine the audit target: full repo, specific directory, or module.
+2. Note the user's specific audit focus, if any (e.g., "focus on security", "look at the API layer").
+3. Note the target repository path (`{repo_path}`).
+4. Note this skill's base directory (`{skill_dir}`) — provided when the skill is loaded.
+5. Create the output directory: `{repo_path}/.audit/`
 
-Gather everything the lenses need. Don't audit code yet — just build context.
+---
 
-### Step 0 — Static Analysis Pre-Pass
+## Phase 1: Scout
 
-Detect and run any available static analysis, type checking, linting, or build checks in the project:
-- Look for configured tools (e.g., `eslint`, `ruff`, `mypy`, `tsc --noEmit`, `clippy`, `go vet`)
-- Run them and capture the output
-- This output will be injected into lens prompts under `### Static Analysis Output`
-- If no tools are available or configured, explicitly note `No static analysis tools available` in the lens context
+Spawn a scout sub-agent to map the codebase. The scout reads files and produces a structured codemap — the orchestrator does not read source files itself.
 
-**Priority rule:** Tool-confirmed issues (type errors, lint violations, build failures) are higher confidence than LLM-only hypotheses. Lenses should cross-reference static analysis output before raising their own findings on the same locations.
+**Dispatch via Task tool:**
 
-### Step 1 — Scope Mapping
+```
+Read your instructions at {skill_dir}/phases/phase-1-scout.md.
 
-- Identify the audit target: full repo, specific directory, or module.
-- Map the target area's directory structure, entry points, and key modules.
-- Understand the data flow and component relationships.
-- Read the files in the audit scope.
-- If uncommitted changes exist, note which files are affected and what changed.
+Target repository: {repo_path}
+Audit focus: {user_focus or "general structural health assessment"}
 
-### Step 2 — Convention Extraction
+Create the directory {repo_path}/.audit/ if it doesn't exist.
+Write your output to:
+- {repo_path}/.audit/codemap.md
+- {repo_path}/.audit/static-analysis.md
+```
 
-Scan the codebase for patterns. Produce a **convention fingerprint** (10-20 bullet points):
-- Naming: variables, functions, classes, files, directories
-- Error handling: how errors are caught, reported, propagated
-- Code organization: file structure, export patterns, module layout
-- Testing: naming, framework, setup/teardown, assertion style
-- Common idioms: logging, config access, dependency injection, validation
-
-### Step 3 — Dependency Map
-
-Dependency mapping must be tool-grounded — use search, glob, grep, and reference tracing. Do not infer dependencies from naming conventions or assumptions.
-
-For each public function, type, class, or export in the audit scope:
-1. Grep/search for ALL callers and importers across the codebase
-2. Identify downstream consumers and upstream producers
-3. Record the dependency graph (which files depend on what)
-4. For each critical dependency edge, include the observed location(s) as evidence
-
-This is critical — the Cross-Module Coherence lens needs this to assess contract health and identify coupling issues. Hallucinated dependency graphs poison all downstream lenses.
-
-### Step 4 — Utility Inventory
-
-Note reusable helpers, shared types, constants, and common patterns that:
-- Code in the audit scope should leverage (but might not)
-- Exist as alternatives to duplicated implementations
-
-### Step 5 — Lens Selection
-
-**Always run:** Code Health, Cross-Module Coherence, Refactoring Opportunities, Security/Performance (Lenses 1-4).
-
-**Correctness (Lens 5) is not included by default.** This skill focuses on structural health assessment — line-level correctness checking (logic bugs, off-by-one errors, incorrect branching) is the domain of tests, type checkers, and change-level review tools. Only include the correctness lens when the user explicitly requests it.
+Wait for the scout to complete before proceeding.
 
 ---
 
 ## Phase 2: Parallel Lens Analysis
 
-**Dispatch sub-agents in parallel.** Launch all applicable lenses simultaneously in a single message using the Task tool.
+### Lens Selection
 
-### Lens Configuration
+**Always run:** Code Health, Cross-Module Coherence, Refactoring Opportunities, Security/Performance (Lenses 1-4).
 
-For each lens:
-1. Read its reference file from `references/lens-*.md`
-2. Construct the sub-agent prompt using the template below
-3. Launch as a sub-agent using the Task tool
-4. All lenses run concurrently — they are independent analyses
+**Correctness (Lens 5) is not included by default.** This skill focuses on structural health assessment — line-level correctness checking is the domain of tests, type checkers, and change-level review tools. Only include the correctness lens when the user explicitly requests it.
 
 ### The 5 Lenses
 
-| # | Lens | Reference File | Scope | Role |
-|---|------|---------------|-------|------|
-| 1 | Code Health & Conventions | [lens-code-health.md](references/lens-code-health.md) | File | **Primary** — structural quality |
-| 2 | Cross-Module Coherence | [lens-cross-module.md](references/lens-cross-module.md) | Module / system | **Primary** — the differentiator |
-| 3 | Refactoring Opportunities | [lens-refactoring.md](references/lens-refactoring.md) | Proactive detection | **Primary** — structural debt |
-| 4 | Security & Performance | [lens-security-performance.md](references/lens-security-performance.md) | Cross-cutting | Standard |
-| 5 | Correctness & Logic | [lens-correctness.md](references/lens-correctness.md) | Line / function | Opt-in (user request only) |
+| # | Lens | Reference File | Role |
+|---|------|---------------|------|
+| 1 | Code Health & Conventions | [lens-code-health.md](references/lens-code-health.md) | **Primary** — structural quality |
+| 2 | Cross-Module Coherence | [lens-cross-module.md](references/lens-cross-module.md) | **Primary** — the differentiator |
+| 3 | Refactoring Opportunities | [lens-refactoring.md](references/lens-refactoring.md) | **Primary** — structural debt |
+| 4 | Security & Performance | [lens-security-performance.md](references/lens-security-performance.md) | Standard |
+| 5 | Correctness & Logic | [lens-correctness.md](references/lens-correctness.md) | Opt-in (user request only) |
 
-### Sub-Agent Prompt Template
+### Dispatch
 
-Each sub-agent receives this prompt structure:
+Launch all active lenses **simultaneously in a single message** using the Task tool. Each lens receives a minimal prompt — the lens reads its own instructions and the codemap from disk.
 
-```
-You are performing a focused codebase audit analysis. Use ONLY the checklist
-provided below — do not audit for concerns outside your checklist.
-Return structured findings. If nothing is found, say so explicitly.
-
-## Audit Context
-
-### Audit Goal
-[What we're assessing and why — from Phase 1]
-
-### Static Analysis Output
-[Output from Step 0, or "No static analysis tools available"]
-
-### Convention Fingerprint
-[Bullet list from Step 2]
-
-### Dependency Map
-[Dependency graph from Step 3]
-
-### Utility Inventory
-[Available helpers/types from Step 4]
-
-### Files Under Audit
-[File contents in the audit scope]
-
-## Your Checklist
-[Paste the full contents of the lens reference file here]
-```
-
-### Parallel Dispatch
-
-Launch all active lenses in a **single message** with multiple Task tool calls:
+**Per-lens prompt:**
 
 ```
-Task 1: Lens — Code Health & Conventions
-Task 2: Lens — Cross-Module Coherence
-Task 3: Lens — Refactoring Opportunities
-Task 4: Lens — Security & Performance
-Task 5: Lens — Correctness & Logic  ← only if explicitly requested by user
+You are performing a focused code audit.
+
+Read your lens instructions at {skill_dir}/references/lens-{name}.md.
+Read the codemap at {repo_path}/.audit/codemap.md.
+Read static analysis output at {repo_path}/.audit/static-analysis.md (if it exists).
+
+Target repository: {repo_path}
+Audit focus: {user_focus or "general structural health assessment"}
+
+Write your findings to {repo_path}/.audit/lens-{name}.md.
+
+If you find no issues, write that explicitly to the output file.
 ```
 
-Wait for all to complete before proceeding to Phase 3.
+Wait for all lenses to complete before proceeding to Phase 3.
 
 ---
 
-## Phase 3: Synthesis
+## Phase 3: Synthesis & Verification
 
-**Run this inline after all lenses complete.**
+### Step 1 — Collect & Verify
 
-### Step 1 — Collect & Deduplicate
+1. Read all `.audit/lens-*.md` files.
+2. **Verification pass for P0/P1 findings:** For any finding rated P0 or P1 by a lens agent, read the cited code location(s) yourself to verify the evidence is real and the severity is warranted. This catches hallucinated evidence and overblown severity. Downgrade or remove findings that don't hold up.
+3. **Cross-lens conflict resolution:** If two lenses contradict each other on the same code (e.g., one says "extract this" and another says "this duplication is intentional"), read the code and make the call.
 
-Gather findings from all lenses. If two lenses flag the same location for the same underlying issue, merge them — keep the more detailed evidence and the higher severity suggestion.
+### Step 2 — Deduplicate & Group
 
-### Step 2 — Group by Theme
+Merge findings from all lenses. If two lenses flag the same location for the same underlying issue, merge — keep the more detailed evidence and the higher severity.
 
 Group findings into themes based on the underlying issue pattern. Examples:
 - "Error handling inconsistencies across modules"
 - "Duplication cluster in authentication logic"
 - "Module boundary violations in data layer"
-- "Missing test coverage for core business logic"
 
 Each theme group should include:
 - All related findings with their evidence
 - A brief remediation path (what to fix and in what order)
 - Estimated effort (low / medium / high)
 
-### Step 3 — Assign Priority
+### Step 3 — Prioritize & Assess
 
 Map each finding to the priority scale:
 
@@ -223,29 +147,16 @@ Map each finding to the priority scale:
 | **P2** (Medium) | Convention violations, duplication clusters, missing tests, incomplete error handling, performance concerns |
 | **P3** (Low) | Style suggestions, minor optimization, refactoring opportunities that aren't urgent |
 
-**Severity gating rule:** Every finding must reference at least one concrete code location (file + line or function). No location, no finding. Additionally, P0 and P1 findings require either:
-- Tool confirmation (static analysis, type checker, build error), or
-- Concrete code evidence with a reproducible failure path or specific validation steps
+**Severity gating:** P0 and P1 findings require either tool confirmation (static analysis, type checker, build error) or concrete code evidence with a specific failure path. If a finding can't meet this bar, downgrade to P2 or move to Questions.
 
-If a finding cannot meet this evidence bar, downgrade it to P2 or move it to Questions.
+For each finding, also assess:
 
-### Step 4 — Assess Complexity & Validity
+- **Complexity** (effort and risk to fix): low / medium / high
+- **Validity** (how objective): high / medium / low
 
-For each finding add:
+### Step 4 — Write Report
 
-**Complexity** (effort and risk to fix):
-- **low** — Mechanical fix, single location, no risk of regression
-- **medium** — Multiple files or requires design decision, moderate regression risk
-- **high** — Architectural change, high regression risk, requires careful planning
-
-**Validity** (how objective the finding is):
-- **high** — Objectively wrong (bug, vulnerability, broken contract)
-- **medium** — Convention violation backed by evidence, or clear anti-pattern
-- **low** — Style/taste judgment, or uncertainty about whether it's actually a problem
-
-### Step 5 — Format Output
-
-Present findings grouped by theme, ordered by priority within each theme (P0 first → P3 last). Within the same priority, order by validity (high first).
+Write the final report to `{repo_path}/.audit/report.md` using this format:
 
 ```markdown
 ## Theme: [Theme title]
@@ -263,9 +174,9 @@ Present findings grouped by theme, ordered by priority within each theme (P0 fir
 **Validation:** [specific tests, checks, or CI steps to verify the fix]
 ```
 
-### Questions Section
+Order: themes by highest-priority finding first. Within each theme, P0 → P3. Within same priority, high validity first.
 
-If any lens flagged uncertain items, list them as questions:
+Include a **Questions** section for uncertain items:
 
 ```markdown
 ## Questions
@@ -273,9 +184,7 @@ If any lens flagged uncertain items, list them as questions:
 1. **[Question]** at `file:line` — [why this is unclear and what would resolve it]
 ```
 
-### Structural Health Summary
-
-End with an overall assessment:
+End with the **Structural Health Summary:**
 
 ```markdown
 ## Structural Health Summary
@@ -296,39 +205,38 @@ End with an overall assessment:
 | P2       | N     |
 | P3       | N     |
 
-**Lenses applied:** [list which ran] | **Scope:** [single-module / multi-module / full-repo]
+**Lenses applied:** [list which ran] | **Scope:** [what was audited]
 
 ### Coverage
-- **Audited:** [X/Y files]
-- **Selection criteria:** [why these files were selected — for Medium/Large tiers]
-
-### Excluded Areas
-[What was not inspected and why — or "None, full coverage" for Small tier]
-
-### Follow-Up Queue
-[Ordered list of next-pass targets for incomplete audits — or "N/A" for full coverage]
+[Sourced from the codemap's coverage notes — what was examined, what wasn't]
 
 ### Recommended Next Steps
-[Ordered list of what to tackle first, considering priority × effort × blast radius]
+[Ordered list of what to tackle first, considering priority x effort x blast radius]
 ```
 
-If no findings from any lens: state that the audit found no issues, note which lenses ran and the scope analyzed.
+### Step 5 — Present to User
+
+After writing the report, present a concise summary to the user:
+- Overall assessment (1-2 sentences)
+- Top 3 systemic issues
+- Findings count by priority
+- Note: "Full report written to `.audit/report.md`"
 
 ---
 
 ## Known AI Blind Spots
 
-Actively watch for these during all phases:
+Watch for these during synthesis and verification:
 
 | Blind Spot | What Happens | Mitigation |
 |---|---|---|
-| **Invisible coupling** | Modules appear independent but share implicit contracts via shared state, config, or conventions | Phase 1 dependency map + Lens 2 contract checks |
-| **Duplication creep** | Same logic reimplemented across modules instead of using shared utilities | Phase 1 utility inventory + Lens 1 duplication checks |
-| **Plausible code** | Code looks right and tests pass, but is semantically wrong or subtly inconsistent | Lens 2 contract drift checks + static analysis pre-pass. For deeper analysis, request the correctness lens explicitly. |
-| **Convention drift** | Different parts of the codebase follow different conventions that evolved over time | Phase 1 convention fingerprint + Lens 1 adherence |
-| **Partial migrations** | Old and new patterns coexist with no clear boundary or completion path | Lens 2 migration completeness checks |
-| **Security regression** | A "redundant" check was a security guard; removing or bypassing it creates a vulnerability | Lens 4 explicit security checklist |
-| **Architectural violation** | Imports cross layer boundaries the project doesn't allow | Lens 2 dependency direction checks |
+| **Invisible coupling** | Modules appear independent but share implicit contracts via shared state, config, or conventions | Scout dependency map + cross-module lens |
+| **Duplication creep** | Same logic reimplemented across modules instead of using shared utilities | Scout utility inventory + code health lens |
+| **Plausible code** | Code looks right but is semantically wrong or subtly inconsistent | Cross-module contract checks + static analysis. For deeper analysis, request the correctness lens. |
+| **Convention drift** | Different parts of the codebase follow different conventions that evolved over time | Scout convention fingerprint + code health lens |
+| **Partial migrations** | Old and new patterns coexist with no clear boundary or completion path | Cross-module migration completeness checks |
+| **Security regression** | A "redundant" check was a security guard; removing it creates a vulnerability | Security lens explicit checklist |
+| **Architectural violation** | Imports cross layer boundaries the project doesn't allow | Cross-module dependency direction checks |
 
 ---
 

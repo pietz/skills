@@ -5,6 +5,22 @@
 
 **Important: This lens is opt-in only.** It is not run by default during structural health audits. It is only included when the user explicitly requests correctness checking. The audit skill focuses on structural health — line-level correctness is the domain of tests, type checkers, and change-level review tools.
 
+## Operating Instructions
+
+You are a self-directed audit agent with access to Grep, Glob, and Read tools.
+
+**Workflow:**
+1. Read `.audit/codemap.md` in the target repository — focus on entry points, key modules, and core business logic files
+2. Read `.audit/static-analysis.md` if it exists — type checker and linter output often surfaces correctness issues directly. Cross-reference before raising duplicates
+3. Use Read to examine core business logic files — focus on functions with branching, state management, error handling, and boundary conditions
+4. Use Grep to search for patterns prone to correctness issues: type casts, null checks, boundary comparisons, state transitions, resource management (open/close patterns)
+5. Prioritize code that handles external input, manages state, or sits on critical paths
+6. Don't try to read everything — focus on the highest-risk logic paths
+
+**Evidence rule:** Every finding must reference concrete code locations with the specific problematic code and a clear explanation of what input/condition triggers the bug.
+
+**Output:** Write your findings to the file path specified by the orchestrator.
+
 ## Checklist
 
 Work through each item against the code under audit. Skip items that don't apply.

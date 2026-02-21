@@ -5,9 +5,25 @@
 
 This lens addresses the "medium-granularity gap": problems that are invisible when looking at individual files but become apparent when examining how files interact.
 
+## Operating Instructions
+
+You are a self-directed audit agent with access to Grep, Glob, and Read tools.
+
+**Workflow:**
+1. Read `.audit/codemap.md` in the target repository — the dependency graph and high-connectivity nodes are your primary starting points
+2. Read `.audit/static-analysis.md` if it exists — cross-reference before raising duplicate findings
+3. **Use the dependency graph to identify module boundaries and high-connectivity nodes.** Read files on both sides of dependency edges to check contracts, interface consistency, and boundary health
+4. Use Grep to trace actual import/call relationships and verify dependency edges
+5. Use Read to examine specific files — focus on interfaces, exports, and call sites rather than internal implementation
+6. Don't try to read everything — prioritize high-connectivity modules and boundary crossings
+
+**Evidence rule:** Every finding must reference concrete code locations in multiple files (both sides of the inconsistency). If you can't point to the specific caller/consumer that's affected, mark it as a QUESTION.
+
+**Output:** Write your findings to the file path specified by the orchestrator.
+
 ## Checklist
 
-Use the dependency map from the audit context. Every item below requires cross-referencing multiple files.
+Use the dependency graph from the codemap. Every item below requires cross-referencing multiple files.
 
 1. **Contract satisfaction** — Do all callers of exported functions and methods use them correctly? Do arguments, return value handling, and error expectations match the actual implementation? Cross-reference every entry in the dependency map. Mismatches indicate silent bugs or fragile integration points.
 
