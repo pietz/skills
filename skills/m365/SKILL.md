@@ -102,6 +102,43 @@ m365 outlook mail send --subject "Subject" --to "recipient@example.com" \
   --bodyContents "Sent from shared mailbox" --output json
 ```
 
+### Reply to email (via Graph API)
+
+The CLI has no built-in reply command. Use `m365 request` with the Graph API reply endpoint:
+
+```bash
+# Reply to sender only (plain text comment)
+cat > /tmp/m365_reply.json << 'EOF'
+{
+  "comment": "Thanks, that works for me!"
+}
+EOF
+
+m365 request --url "https://graph.microsoft.com/v1.0/users/<upn>/messages/<message-id>/reply" \
+  --method post --body @/tmp/m365_reply.json --content-type "application/json"
+
+# Reply all
+m365 request --url "https://graph.microsoft.com/v1.0/users/<upn>/messages/<message-id>/replyAll" \
+  --method post --body @/tmp/m365_reply.json --content-type "application/json"
+
+# Reply with HTML body and additional recipients
+cat > /tmp/m365_reply.json << 'EOF'
+{
+  "message": {
+    "toRecipients": [
+      {"emailAddress": {"address": "extra@example.com", "name": "Extra Recipient"}}
+    ]
+  },
+  "comment": "<p>Replying with <b>HTML</b> content.</p>"
+}
+EOF
+
+m365 request --url "https://graph.microsoft.com/v1.0/users/<upn>/messages/<message-id>/reply" \
+  --method post --body @/tmp/m365_reply.json --content-type "application/json"
+```
+
+The Graph API handles threading, quoting the original message, and setting recipients automatically. Use `comment` for the reply text. Optionally include a `message` object to add/override recipients. Returns `202 Accepted` with no body on success. Requires `Mail.Send` permission.
+
 ### Move / archive messages
 
 ```bash
