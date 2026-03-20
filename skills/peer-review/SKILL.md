@@ -12,17 +12,12 @@ Query multiple LLM CLIs in parallel and collect their responses.
 All three should be invoked via the Bash tool as background tasks, run in parallel:
 
 - **Claude**: `unset CLAUDECODE && claude --model opus -p "$PROMPT"`
-- **Codex**: `codex exec -m "gpt-5.2" --skip-git-repo-check "$PROMPT"`
+- **Codex**: `codex exec -m "gpt-5.4" --skip-git-repo-check "$PROMPT"`
 - **Gemini**: `gemini -m "gemini-3.1-pro-preview" -p "$PROMPT"`
 
 ## Self-invocation rule
 
-The orchestrating agent (the one running this skill) must NOT call its own CLI via Bash — it will fail or produce empty output. Instead, it should use a **subagent** (e.g., Task tool with `model: "opus"`) for its own model's contribution. Only use Bash CLI commands for the **other** models.
-
-For example:
-- If **Claude** is the orchestrator: use subagent for Claude, Bash for Codex and Gemini.
-- If **Codex** is the orchestrator: use subagent for Codex, Bash for Claude and Gemini.
-- If **Gemini** is the orchestrator: use subagent for Gemini, Bash for Claude and Codex.
+The orchestrating agent must NOT call its own CLI via Bash — it will fail or produce empty output. Use a **subagent** for your own model's contribution and Bash CLI commands for the other models.
 
 ## Workflow
 
@@ -39,3 +34,4 @@ For example:
 
 - Think about how much you want to reveal about your own opinion when crafting the prompt.
 - If a CLI fails or times out, report it and continue with the results you have.
+- Responses will arrive at different speeds. As each result comes in, consider giving the user a brief update or early summary rather than waiting silently for all models to finish. The final synthesis still needs all responses, but intermediate progress keeps the user informed.
