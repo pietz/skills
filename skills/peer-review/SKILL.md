@@ -1,6 +1,8 @@
 ---
 name: peer-review
 description: Ask a group of LLM tools for their opinion on a given task. Use this when stuck on a problem, seeking a second opinion, validating an approach, or wanting diverse viewpoints on complex decisions.
+metadata:
+  version: "1.1.0"
 ---
 
 # Peer Review
@@ -12,7 +14,7 @@ Query multiple LLM CLIs in parallel and collect their responses.
 All three should be invoked via the Bash tool as background tasks, run in parallel:
 
 - **Claude**: `unset CLAUDECODE && claude --model opus -p "$PROMPT"`
-- **Codex**: `codex exec -m "gpt-5.4" --skip-git-repo-check "$PROMPT"`
+- **Codex**: `codex exec -m "gpt-5.5" --skip-git-repo-check "$PROMPT"`
 - **Gemini**: `gemini -m "gemini-3.1-pro-preview" -p "$PROMPT"`
 
 ## Self-invocation rule
