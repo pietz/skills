@@ -2,10 +2,10 @@
 name: ship
 description: Finish a build session by shipping the work. Ensure tests exist and pass, validate the functionality, spawn a fresh-eyes subagent review when the change is large or risky, then commit and push to main. Use when the user says "ship", "ship it", "wrap this up and push", "test, commit and push", or otherwise wants the session's changes tested, reviewed, committed, and pushed.
 metadata:
-  version: "1.1.0"
+  version: "1.1.1"
 ---
 
-You've just finished building something. Take it to done and ship it to main.
+Finish the work in this session, if it isn't already, and ship it to main.
 Invoking this skill is the explicit permission to commit and push.
 
 Make sure the work is tested and validated in proportion to what it is: add
