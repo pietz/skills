@@ -22,6 +22,7 @@ npx skills add pietz/skills/skills/calendar
 | **slides** | Create presentations, flyers, and posters via HTML/CSS to PDF |
 | **railway** | Deploy and manage apps on Railway |
 | **peer-review** | Get alternative perspectives from other LLMs |
+| **ship** | Test, validate, fresh-eyes review, then commit and push to main |
 
 ## Local Setup
 
