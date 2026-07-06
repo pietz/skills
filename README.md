@@ -23,6 +23,7 @@ npx skills add pietz/skills/skills/calendar
 | **railway** | Deploy and manage apps on Railway |
 | **peer-review** | Get alternative perspectives from other LLMs |
 | **ship** | Test, validate, fresh-eyes review, then commit and push to main |
+| **tts** | Local text-to-speech via the pocket-tts CLI: speak aloud, generate audio files, clone voices |
 
 ## Local Setup
 
