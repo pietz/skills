@@ -12,6 +12,7 @@ reduce context bloat while making agent behavior consistent and reusable.
 - Installed agents consume these skills via per-skill symlinks in their native skill directories:
   - Claude Code: `~/.claude/skills/<skill>` -> this repo
   - Codex: `~/.codex/skills/<skill>` -> this repo (leave `~/.codex/skills/.system` intact)
+  - Agent runtime: `~/.agents/skills/<skill>` -> this repo
   - Gemini CLI: `~/.gemini/skills/<skill>` -> this repo (Gemini also has built-in/extension skills)
 - We intentionally do NOT symlink the entire agent skill root directories, to avoid breaking agent-native
   skills and internal/system folders.

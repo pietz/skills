@@ -8,7 +8,7 @@ set -euo pipefail
 # Usage:
 #   scripts/link-skills.sh            # dry run
 #   scripts/link-skills.sh --apply    # apply changes
-#   scripts/link-skills.sh --apply --agent claude --agent codex
+#   scripts/link-skills.sh --apply --agent claude --agent codex --agent agents
 #
 # Conflict policy:
 # - If the target path does not exist: create symlink.
@@ -25,10 +25,10 @@ skills=()
 
 usage() {
   cat <<'EOF'
-Usage: scripts/link-skills.sh [--apply] [--agent <claude|codex|gemini>]... [--skill <name>]...
+Usage: scripts/link-skills.sh [--apply] [--agent <claude|codex|agents|gemini>]... [--skill <name>]...
 
 Defaults:
-  - agents: claude, codex, gemini
+  - agents: claude, codex, agents, gemini
   - skills: all directories under ./skills
 
 Notes:
@@ -52,7 +52,7 @@ while [ $# -gt 0 ]; do
 done
 
 if [ ${#agents[@]} -eq 0 ]; then
-  agents=(claude codex gemini)
+  agents=(claude codex agents gemini)
 fi
 
 if [ ${#skills[@]} -eq 0 ]; then
@@ -65,6 +65,7 @@ agent_dir_for() {
   case "$1" in
     claude) echo "${HOME}/.claude/skills" ;;
     codex) echo "${HOME}/.codex/skills" ;;
+    agents) echo "${HOME}/.agents/skills" ;;
     gemini) echo "${HOME}/.gemini/skills" ;;
     *)
       echo "Unknown agent: $1" >&2

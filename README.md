@@ -33,3 +33,5 @@ If you want to symlink skills into your agent's skill directory:
 scripts/link-skills.sh         # dry run
 scripts/link-skills.sh --apply # apply safe symlinks
 ```
+
+Use `--agent agents` to update the runtime directory at `~/.agents/skills`.
