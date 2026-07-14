@@ -31,7 +31,7 @@ Consider these the default choices when the respective functionality is needed. 
 - Language: Python 3.13 managed with `uv`
 - CLI when needed: Typer and Rich
 - Backend: FastAPI and Pydantic
-- Server-rendered HTML when needed: Jinja2 templates served by FastAPI
+- HTML templating when needed: Jinja2
 - HTTP client when needed: httpx
 - Authentication when needed: HTTP Basic
 - Database access when needed: SQLModel
