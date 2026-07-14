@@ -31,6 +31,8 @@ Consider these the default choices when the respective functionality is needed. 
 - Language: Python 3.13 managed with `uv`
 - CLI when needed: Typer and Rich
 - Backend: FastAPI and Pydantic
+- Server-rendered HTML when needed: Jinja2 templates served by FastAPI
+- HTTP client when needed: httpx
 - Authentication when needed: HTTP Basic
 - Database access when needed: SQLModel
 - Database: SQLite for local use and PostgreSQL for deployed web applications
@@ -47,7 +49,9 @@ Do not add authentication, persistence, background workers, queues, caches, or a
 
 ## 3. Implementation
 
-After the plan is accepted, consider using subagents for independent work that can proceed in parallel, such as frontend and backend implementation.
+After the plan is accepted, set up the project in the current directory if it is already the intended project folder; otherwise create a new one. Initialize a local git repository without a remote and commit at sensible milestones.
+
+Consider using subagents for independent work that can proceed in parallel, such as frontend and backend implementation.
 
 Keep the implementation focused on the accepted demonstration path.
 
@@ -79,7 +83,7 @@ Do not add unit or integration tests by default.
 
 ## 4. Visual Verification
 
-Before presenting the result, run the application and use the `agent-browser` skill to smoke-test:
+Before presenting the result, run the application. For web UIs, use the `agent-browser` skill to smoke-test:
 
 - The primary success flow
 - Loading and result states
@@ -87,6 +91,8 @@ Before presenting the result, run the application and use the `agent-browser` sk
 - Desktop layout
 - Mobile layout
 - Upload, camera capture, or other device-oriented interactions when present
+
+For CLI or API-only PoCs, exercise the main commands or endpoints directly instead.
 
 Fix obvious visual or functional problems discovered during the smoke test.
 
@@ -96,7 +102,7 @@ Do not introduce a large testing or linting setup solely for the PoC.
 
 Unless the user requests a local-only result, include Railway deployment in the proposed plan.
 
-Once the deployment plan is accepted, use the `railway` skill to create a dedicated Railway project using Railpack and expose it through a Railway-provided public domain.
+Once the user has agreed to the deployment, use the `railway` skill to create a dedicated Railway project using Railpack and expose it through a Railway-provided public domain.
 
 Choose the Railway workspace from the project context:
 
