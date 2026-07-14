@@ -29,18 +29,15 @@ Do not expand the PoC into a production platform.
 These are the default choices, applied **only when the respective functionality is needed**. If there is reasonable doubt about a choice, suggest an alternative and briefly explain why.
 
 - Language: Python 3.13 managed with `uv`
-- CLI: Typer and Rich
-- Backend: FastAPI, Pydantic, and Jinja2 templates
-- Frontend: HTML, CSS, vanilla JavaScript, and HTMX when it simplifies interaction
-- HTTP client: httpx
-- Authentication: HTTP Basic
-- Database: SQLite locally, PostgreSQL when deployed, accessed via SQLModel
-- AI functionality: Pydantic AI for structured LLM calls, OpenAI Codex SDK for multi-step agent workflows
-- Deployment: Railway using Railpack, with a storage volume for file storage
+- CLI: Typer, Rich
+- Backend: FastAPI, Pydantic, SQLModel, Jinja2, httpx
+- Auth: HTTP Basic
+- Frontend: HTML, CSS, vanilla JS, and HTMX when needed
+- Database: SQLite locally, PostgreSQL when deployed
+- AI: PydanticAI for structured LLM calls, Codex SDK for multi-step agent workflows
+- Deployment: Railway using Railpack
 
 Keep the application stateless when practical.
-
-Do not add authentication, persistence, background workers, queues, caches, or additional services unless the primary flow requires them.
 
 ## 3. Implementation
 
@@ -76,7 +73,7 @@ Do not introduce speculative abstractions or production architecture that the cu
 
 Do not add unit or integration tests by default.
 
-## 4. Visual Verification
+## 4. Verification
 
 Before presenting the result, run the application. For web UIs, use the `agent-browser` skill to smoke-test:
 
@@ -99,16 +96,9 @@ Unless the user requests a local-only result, include Railway deployment in the 
 
 Once the user has agreed to the deployment, use the `railway` skill to create a dedicated Railway project using Railpack and expose it through a Railway-provided public domain.
 
-Choose the Railway workspace from the project context:
-
-- Use the work workspace for clearly professional, company, or client-related projects.
-- Use the private workspace for personal projects.
-- When uncertain, use the private workspace.
-- An explicitly named workspace always takes precedence.
+If multiple Railway workspaces exist, select the one that fits the topic. In doubt, choose the private one.
 
 Add PostgreSQL or a storage volume only when required by the implemented flow.
-
-Do not add a Procfile unless the application genuinely requires one.
 
 ## 6. Finish
 
