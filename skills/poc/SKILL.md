@@ -26,22 +26,17 @@ Do not expand the PoC into a production platform.
 
 ## 2. Tech Stack
 
-Consider these the default choices, but **only when the respective functionality is needed**. If there is reasonable doubt about a choice, suggest an alternative and briefly explain why.
+These are the default choices, applied **only when the respective functionality is needed**. If there is reasonable doubt about a choice, suggest an alternative and briefly explain why.
 
 - Language: Python 3.13 managed with `uv`
 - CLI: Typer and Rich
-- Backend: FastAPI and Pydantic
-- HTML templating: Jinja2
+- Backend: FastAPI, Pydantic, and Jinja2 templates
+- Frontend: HTML, CSS, vanilla JavaScript, and HTMX when it simplifies interaction
 - HTTP client: httpx
 - Authentication: HTTP Basic
-- Database access: SQLModel
-- Database: SQLite for local use and PostgreSQL for deployed web applications
-- Frontend: HTML, CSS, vanilla JavaScript, and HTMX when it simplifies interaction
-- AI functionality:
-  - Pydantic AI for simple or structured LLM functionality
-  - OpenAI Codex SDK for powerful multi-step agent workflows
-- Deployment: Railway using Railpack
-- Blob storage: Railway storage volume
+- Database: SQLite locally, PostgreSQL when deployed, accessed via SQLModel
+- AI functionality: Pydantic AI for structured LLM calls, OpenAI Codex SDK for multi-step agent workflows
+- Deployment: Railway using Railpack, with a storage volume for file storage
 
 Keep the application stateless when practical.
 
