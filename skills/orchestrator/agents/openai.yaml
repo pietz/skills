@@ -1,4 +1,0 @@
-interface:
-  display_name: "Orchestrator"
-  short_description: "Coordinate parallel subagent workstreams"
-  default_prompt: "Use $orchestrator to coordinate this task across subagents."
