@@ -21,3 +21,4 @@ skills/*
 !skills/tts/
 !skills/poc/
 !skills/orchestrator/
+!skills/advisor/

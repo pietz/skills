@@ -1,0 +1,4 @@
+interface:
+  display_name: "Advisor"
+  short_description: "Consult a top-tier advisor model on one hard question"
+  default_prompt: "Use $advisor to get a focused second opinion on this."
