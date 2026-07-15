@@ -25,7 +25,7 @@ Reach for it proactively at these points, not only when the user asks. Skip it f
 Use the strongest model available to your harness. The advisor must be at least as capable as you are.
 
 - Claude Code: spawn a subagent with model `fable`, falling back to `opus` if Fable is unavailable, at `effort: xhigh`.
-- Codex: spawn a subagent on the strongest model (GPT-5.x "Sol") at high reasoning.
+- Codex: spawn a subagent on the largest and newest model (the "Sol" tier, whatever version is current) at high reasoning.
 - Any other harness: use its most capable model at its highest reasoning setting.
 
 ## Write a self-contained briefing
