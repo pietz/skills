@@ -1,64 +1,63 @@
 ---
 name: clean-room
-description: Clean-room redesign of existing software. Describe what the system must do without reference to how it is built, have isolated agents that cannot see the code design it from scratch, then compare their designs with the real thing to find what to protect and what to simplify or change. Use for refactoring accreted complexity, reviewing whether a product's core concepts are right, or deciding on a rewrite. NOT for bug fixes, feature work, style cleanup, or refactors whose change is already obvious.
+description: Clean-room review of a module or a whole product. Independent designers who never see the code design it from a brief; comparing their designs with the real implementation shows what to protect, simplify or change. Use only when the user explicitly invokes it.
 disable-model-invocation: true
 metadata:
-  version: "2.0.0"
+  version: "2.1.0"
 ---
-# Clean-room redesign
+# Clean-room review
 
-Your enemy is **anchoring**. Once you have read an implementation, its structure becomes your picture of what the system "must" be, and you propose variations of it instead of seeing that it could be much smaller or shaped differently. A clean-room design breaks the anchor: the designer gets a description of *what* the system must do and is structurally unable to see *how* it is done today. Comparing that design with the real one is the review.
+Your enemy is **anchoring**. Once you have read an implementation, its structure becomes your picture of what the system "must" be, and you propose variations of it instead of seeing that it could be much smaller or shaped differently. A clean-room design breaks the anchor: a designer gets a description of *what* the system must do and has no way to see *how* it is done today. Comparing that design with the real one is the review.
 
-The method works at two scales:
+You, the lead, will read the code. That makes you the most anchored party in the run: you write the brief and do the comparison, but you never do the design.
 
-- **Refactor:** one module or subsystem. Input is a behavior contract; output is a leaner implementation plan.
-- **Concept review:** a whole product. Input is the product idea, hard constraints and use cases; output is which core concepts to protect and which to change.
+Two modes:
+
+- **Refactor** (one module or subsystem): the brief is a behavior contract, and the new design must keep it. Output: a leaner implementation plan.
+- **Concept review** (a whole product): the brief is the product idea, hard constraints and use cases, and the point is to find where the contract itself should change. Output: a review document. Building any change is a separate task.
+
+Save every artifact (brief, designs, comparison) to files in a working folder outside the repo as you go, so a long run survives context compaction.
 
 ## Workflow
 
-**1. Agree on a target and a mode.** Survey the codebase and propose where to focus and which scale fits. Prefer one bounded piece over "everything at once", and say why: a bounded target gets a real redesign, a sprawling one gets hand-waving. Let the user pick or override. Don't go deeper until they have chosen.
+**1. Agree on target, mode and cost.** If the user already named the target and mode, take them. Otherwise survey the codebase and propose one bounded target and a mode, and say why: a bounded target gets a real redesign, a sprawling one gets hand-waving. Say roughly what the run costs (two top-tier designers plus a few reading agents) before you start.
 
-**2. Write the brief.** This is the only thing the clean-room designers will see, so getting it right is the whole game.
+**2. Write the brief.** It is the only thing the designers see, so getting it right is the whole game.
 
-- *Refactor:* a behavior contract. Record what the target does **as observed by its callers**: inputs and outputs, errors, effects on stored data, ordering, timing, permissions, compatibility. Read the old code and its tests to *discover* this, but record only what is externally observable. Fan the reading out over parallel sub-agents and merge into one contract. Structure it by capability, not by source file: the old module layout is itself an anchor.
-- *Concept review:* the product in a paragraph, the hard constraints (platform, size budget, performance rules, security model), the question to answer ("what is the smallest set of concepts from which these use cases fall out?"), and a numbered list of concrete use cases, roughly 20 to 40, grouped by area. Use cases are the contract here: write each as what a user does and expects, never as how the current product does it.
+- *Refactor:* record what the target does **as observed by its callers**: inputs and outputs, errors, effects on stored data, ordering, timing, permissions, compatibility. Read the old code and tests to *discover* this, but write down only what is externally observable. For a large target, fan the reading out over parallel sub-agents. Keep exact public names and formats where callers depend on them. Structure it by capability, not by source file.
+- *Concept review:* the product in a paragraph, the hard constraints (platform, size budget, performance rules, security model), the question ("what is the smallest set of concepts from which these use cases fall out?"), and 20-40 numbered use cases grouped by area. Take the use cases from what users of this category expect (competitors, the roadmap, the user), **including ones the product can't do today**. Use cases drawn only from the current product can show "simpler" but never "missing".
 
-Either way, non-functional constraints go in as requirements, never as mechanisms. When you hit something clever (a cache, a retry dance, a hand-rolled pool), record the requirement it serves ("p95 under 200ms", "concurrent webhooks must not race"), not the technique. The fresh design either reinvents something equivalent, proving it was necessary, or meets the requirement more simply, proving it was incidental. If nobody can name what a piece of cleverness serves, keep it and flag it as a question for the user.
+Mark each item **required**, **observed today**, or **unknown**, and keep your evidence for it in a separate file the designers never see. Don't turn guesses into requirements: a cache is not proof of a latency target. When something clever has no requirement anyone can name, leave it out of the brief, list it separately, and ask the user.
 
-**3. Attack the brief.** Everything downstream comes from the brief alone, so an omission is silent behavior loss. Spawn a fresh sub-agent that reads the old code, tests and docs with one job: find observable behaviors or use cases the brief misses (error cases, defaults, ordering, side effects) and any line that leaks *how*. Fold real findings back in; repeat until a pass comes back empty.
+Write requirements, never mechanisms. Avoid the product's name and its internal nouns where a plain description works: every internal term you use hands the existing concept to the designers.
 
-**4. Run the clean-room designs.** Give the whole brief to designer agents that **must not read the repository**: no source, docs, specs, READMEs or git history. Make that structural wherever you can (an agent or workspace without the repo), and state it explicitly in the prompt either way, with the reason: "an implementation exists; designs made after reading it only ever propose variations of it." Web search for facts about competitors or prior art is fine.
+**3. Audit the brief once.** A fresh sub-agent reads the old code, tests and docs and reports (a) observable behavior or use cases the brief misses, (b) any line that leaks *how*, and (c) internal nouns or groupings that mirror the existing structure. Fold in the real findings. Run a second pass only if the first changed something material; after that, list remaining gaps in the report rather than looping.
 
-- **Use two designers from different model families** (e.g. one Claude, one GPT) at top tier. One design is an opinion; two independent designs that agree are evidence.
-- **Give each designer the whole brief.** Don't split the design across per-subsystem agents, or you bury the cross-cutting wins (one error shape, one shared gate, one concept that replaces three) that only show up when one designer holds the entire surface.
-- **Ask for:** the smallest set of concepts, contracts and connection points; a walk through every use case or contract clause showing how it falls out; and what they deliberately *didn't* build and why.
-- It is a thinking and writing task: designers change no files.
+**4. Run the clean-room designs.** Isolation must be structural; asking a designer not to look is not enough.
 
-If you truly can't spawn an isolated agent, design it yourself from the brief alone, and when you catch yourself reaching back to the old structure for the shape of the new one, stop and re-derive.
+- Put the brief in a new empty folder outside the repo. Start each designer **there**, as a fresh session with no conversation history: a delegated task or a separate CLI process (`claude -p`, `codex exec --skip-git-repo-check`, `pi -p`). A designer started inside the repo gets its `CLAUDE.md`/`AGENTS.md` loaded automatically, and a sub-agent that inherits your conversation has already seen the code.
+- Tell each designer it must not read the repository or search the web for the product itself, and why: "an implementation exists; designs made after reading it only propose variations of it." Searching for competitors and prior art is fine.
+- Use **two designers from different model families** (e.g. one Claude, one GPT), top tier, each with the **whole** brief. Splitting the design across agents buries the cross-cutting wins that only show up when one designer holds the entire surface.
+- Ask each for: the smallest set of concepts, contracts and connection points; a walk through every use case or clause showing how it falls out; and what they deliberately didn't build and why. Designers write; they change no files.
+- Afterwards, check each designer's tool log. Discard and rerun any design whose author opened project files or looked the product up.
 
-**5. Compare against the real code, with evidence.** Only now set the designs beside the actual implementation. Sort every difference into one of these:
+If you can't start an isolated designer, don't design it yourself. Hand the user the brief, ready to paste into a fresh session, and mark the design step as pending. With only one designer, report it as one opinion and make no claims about convergence.
 
-- **Both designs landed on what exists:** the foundation is probably right. List it under *what to protect*.
-- **Both designs differ from what exists, in the same direction:** a strong candidate for change, of the kind someone who had read the code would not think of.
-- **The designs disagree with each other:** an open question for the user, not a recommendation.
-- **The real code is heavier than either design needs:** point to the concrete location and explain *why* it exceeds the brief (an abstraction with one caller, a layer that only forwards, state that's never read, the same concept described in four places).
+Optional lenses for a concept review, run in parallel with the designers: a **hands-on walkthrough** (an agent writes and runs real examples against today's contract and reports where it hurts) and **archaeology** (what earlier versions had, and which dropped ideas were lost by accident rather than on purpose).
 
-Run the comparison the other way too: where a design handles a clause differently from the real code, either the brief or the design is wrong, and that must be resolved before any code changes. Check every sharp claim in the code yourself before you report it, and mark it verified.
+**5. Compare against the real code.** First check each design against every clause: a design that is smaller because it dropped a clause is not a simplification. Then, for every consequential difference, cite the clause, verify what today's code does (mark that observation verified), and sort it:
 
-Optional extra lenses for a concept review, run alongside the designers: a **hands-on walkthrough** (an agent writes and runs real examples against today's contract and reports where it hurts) and **archaeology** (what earlier versions had, and which dropped ideas were lost by accident rather than on purpose).
+- **Both designs match what exists:** probably right, *if the brief didn't hand them the concept*. List it under what to protect.
+- **Both differ from what exists, in the same direction:** a strong candidate for change.
+- **The designs differ from each other:** often both are valid. Find a case that tells them apart, weigh complexity, migration cost and user impact, and recommend one. Leave it to the user only when it turns on a product preference or an unknown requirement.
+- **The real code is heavier than the brief needs:** point to the location and say why it exceeds the brief (an abstraction with one caller, a layer that only forwards, state that's never read, one concept described in four places).
 
-**6. Present, get approval, then implement in stages.** Write the result up in plain words: what to protect, the candidates for change (each with what happens today, what the designs do instead, a concrete example and why it matters), open questions, and what you deliberately left alone. Candidates are not recommendations until the user has weighed them. Stop here; implementation needs the user's go-ahead.
+For a concept review, also score every use case as clean, awkward or impossible today; the awkward and impossible ones usually drive the findings. For a refactor, where a design's observable behavior differs from the old code, either the brief or the design is wrong: resolve it before any code changes.
 
-When approved, first pick the oracle: sort existing tests into behavior-level (must pass throughout) and structure-level (expected to die with the old internals), and write tests for any unverified contract behavior against the *old* code first, so they are proven to capture current behavior. Then change the code in small stages, keeping the contract intact at every step, so the work can be checked and stopped at any point.
+**6. Report, then stop.** Write it up in plain words: what to protect; each candidate with what happens today, what the designs do instead, a concrete example, why it matters, your recommendation and how strong the evidence is; open questions; and what you deliberately left alone. "Already lean" is a real answer: if two isolated designs converge on roughly what exists, report that as a success and don't invent simplifications. Stop here; any change needs the user's go-ahead.
 
-## Rules that hold throughout
+## Implementing an approved refactor
 
-**The brief is behavior-only.** It never mentions specific libraries, data structures, algorithms, internal names or layering. If a line would change when someone rewrites the internals without changing what a user or caller sees, it is implementation detail: delete it. The test: could you hand the brief to someone who has never seen the code and have them build a drop-in replacement? If it leaks *how*, the fresh design will just rebuild what exists.
+First pick the oracle: sort existing tests into behavior-level (must pass throughout) and structure-level (expected to die with the old internals), and write tests for any unverified contract behavior against the *old* code first, so they are proven to capture current behavior. Then change the code in small stages, keeping the contract intact at every step, so the work can be checked and stopped at any point. Preserve anything you can't prove is dead: not understanding why something exists is a reason to keep it and flag it.
 
-**Isolation is structural, not a promise.** A designer that can open the repo will, and the anchor pulls harder than you expect. Never paste code, file names or excerpts of the current design into a designer's prompt.
-
-**Preserve anything you can't prove is dead.** Quirks, edge cases, odd timing, undocumented but relied-upon behavior: presume it is load-bearing unless you can show otherwise. Not understanding why something exists is a reason to keep it and flag it, never license to remove it.
-
-**"Already lean" is a real answer.** If the independent designs converge on roughly what exists, that is a trustworthy verdict that the code is healthy: report it as a success. Don't invent simplifications to justify the exercise; manufactured cleanup is worse than none.
-
-**Line count is a symptom, not the goal.** Fewer lines tends to follow from a simpler design, but preserving behavior always outranks shrinking the code.
+For an approved product change from a concept review, record the change, an example that proves it works, and what happens to existing users and data, then treat it as ordinary feature work.
